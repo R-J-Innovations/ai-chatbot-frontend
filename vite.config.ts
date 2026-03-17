@@ -6,8 +6,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://ai-chatbot-backend-production-d810.up.railway.app',
+        target: 'https://ai-chatbot-backend-production-d810.up.railway.app',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },
