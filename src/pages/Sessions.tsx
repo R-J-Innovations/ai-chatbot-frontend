@@ -8,6 +8,7 @@ interface SessionSummary {
   messageCount: number
   startedAt: string
   lastActivityAt: string
+  pageUrl?: string
 }
 
 export default function Sessions() {
@@ -52,6 +53,9 @@ export default function Sessions() {
                   Visitor ID
                 </th>
                 <th className="text-left px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Page
+                </th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Messages
                 </th>
                 <th className="text-left px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -67,6 +71,21 @@ export default function Sessions() {
               {sessions.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-mono text-slate-700 text-xs">{s.visitorId}</td>
+                  <td className="px-6 py-4 max-w-[200px]">
+                    {s.pageUrl ? (
+                      <a
+                        href={s.pageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-600 hover:underline truncate block"
+                        title={s.pageUrl}
+                      >
+                        {(() => { try { return new URL(s.pageUrl).pathname || '/' } catch { return s.pageUrl } })()}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4">
                     <span className="bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-full">
                       {s.messageCount}

@@ -14,6 +14,7 @@ interface ChatSession {
   messages: ChatMessage[]
   startedAt: string
   lastActivityAt: string
+  pageUrl?: string
 }
 
 export default function SessionDetail() {
@@ -50,9 +51,20 @@ export default function SessionDetail() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-slate-900">Session</h1>
             <p className="text-slate-500 text-sm mt-1 font-mono">{session.visitorId}</p>
-            <div className="flex gap-4 mt-2 text-xs text-slate-400">
+            <div className="flex flex-wrap gap-4 mt-2 text-xs text-slate-400">
               <span>Started: {new Date(session.startedAt).toLocaleString()}</span>
               <span>Last activity: {new Date(session.lastActivityAt).toLocaleString()}</span>
+              {session.pageUrl && (
+                <a
+                  href={session.pageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-500 hover:underline truncate max-w-xs"
+                  title={session.pageUrl}
+                >
+                  {session.pageUrl}
+                </a>
+              )}
             </div>
           </div>
 

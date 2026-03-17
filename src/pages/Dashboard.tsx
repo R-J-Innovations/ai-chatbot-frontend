@@ -8,6 +8,7 @@ interface SessionSummary {
   messageCount: number
   startedAt: string
   lastActivityAt: string
+  pageUrl?: string
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
@@ -75,10 +76,12 @@ export default function Dashboard() {
                 to={`/sessions/${s.id}`}
                 className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors"
               >
-                <div>
-                  <p className="text-sm font-medium text-slate-900 font-mono">{s.visitorId}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-900 font-mono truncate">{s.visitorId}</p>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {new Date(s.startedAt).toLocaleDateString()}
+                    {s.pageUrl
+                      ? (() => { try { return new URL(s.pageUrl).pathname || '/' } catch { return s.pageUrl } })()
+                      : new Date(s.startedAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">

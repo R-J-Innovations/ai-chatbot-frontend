@@ -80,11 +80,11 @@ export default function ApiKeys() {
     apiKey: "${tenant.apiKey}"
   };
 </script>
-<script async src="https://cdn.yourdomain.com/chatbot.js"></script>`
+<script async src="https://ai-chatbot-backend-production-d810.up.railway.app/chatbot.js"></script>`
     : ''
 
   const curlExample = tenant
-    ? `curl -X POST https://your-backend.railway.app/api/widget/chat \\
+    ? `curl -X POST https://ai-chatbot-backend-production-d810.up.railway.app/api/widget/chat \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: ${tenant.apiKey}" \\
   -d '{"message": "Hello!", "visitorId": "visitor-123"}'`
