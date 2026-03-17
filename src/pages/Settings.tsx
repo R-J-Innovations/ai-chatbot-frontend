@@ -7,11 +7,20 @@ interface BotSettings {
   greeting: string
   systemPrompt: string
   primaryColor: string
+  backgroundColor: string
 }
 
 const PRESET_COLORS = [
   '#4F46E5', '#7C3AED', '#DB2777', '#DC2626',
   '#D97706', '#16A34A', '#0284C7', '#0F172A',
+]
+
+const BG_OPTIONS = [
+  { label: 'Transparent', value: 'transparent', preview: 'bg-white border border-dashed border-slate-300' },
+  { label: 'Light', value: '#f1f5f9', preview: 'bg-slate-100' },
+  { label: 'White', value: '#ffffff', preview: 'bg-white border border-slate-200' },
+  { label: 'Dark', value: '#1e293b', preview: 'bg-slate-800' },
+  { label: 'Gradient', value: 'linear-gradient(135deg, #e0e7ff, #f5f3ff, #fce7f3)', preview: 'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100' },
 ]
 
 export default function Settings() {
@@ -20,6 +29,7 @@ export default function Settings() {
     greeting: '',
     systemPrompt: '',
     primaryColor: '#4F46E5',
+    backgroundColor: 'transparent',
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -112,6 +122,24 @@ export default function Settings() {
                 />
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Chat background
+              </label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {BG_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, backgroundColor: opt.value }))}
+                    title={opt.label}
+                    className={`w-8 h-8 rounded-full transition-transform hover:scale-110 ${opt.preview} ${
+                      form.backgroundColor === opt.value ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : ''
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
@@ -177,6 +205,7 @@ export default function Settings() {
             botName={form.botName}
             greeting={form.greeting}
             primaryColor={form.primaryColor}
+            backgroundColor={form.backgroundColor}
           />
         </div>
       </div>

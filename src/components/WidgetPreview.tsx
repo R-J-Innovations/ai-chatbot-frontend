@@ -4,70 +4,80 @@ interface Props {
   botName: string
   greeting: string
   primaryColor: string
+  backgroundColor: string
 }
 
-export default function WidgetPreview({ botName, greeting, primaryColor }: Props) {
+export default function WidgetPreview({ botName, greeting, primaryColor, backgroundColor }: Props) {
   const [isOpen, setIsOpen] = useState(true)
   const initial = (botName || 'A')[0].toUpperCase()
 
+  const isGradient = backgroundColor.startsWith('linear-gradient')
+  const isDark = backgroundColor === '#1e293b'
+
   return (
-    <div className="relative h-[480px] bg-slate-100 rounded-xl border border-slate-200 overflow-hidden select-none">
-      <p className="absolute top-3 left-1/2 -translate-x-1/2 text-xs text-slate-400 font-medium tracking-wide uppercase">
+    <div
+      className="relative h-[500px] rounded-xl border border-slate-200 overflow-hidden select-none transition-all duration-300"
+      style={isGradient ? { backgroundImage: backgroundColor } : { backgroundColor: backgroundColor || '#f1f5f9' }}
+    >
+      <p className={`absolute top-3 left-1/2 -translate-x-1/2 text-xs font-medium tracking-wide uppercase z-10 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
         Preview
       </p>
 
-      {/* Chat window */}
+      {/* Chat window — transparent container, floating elements like the real widget */}
       {isOpen && (
-        <div className="absolute bottom-20 right-4 w-72 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-100">
-          {/* Header */}
+        <div className="absolute bottom-20 right-4 w-72 flex flex-col gap-2">
+          {/* Header pill */}
           <div
-            className="px-4 py-3 flex items-center gap-3"
+            className="flex items-center gap-2.5 px-3 py-3 rounded-2xl shadow-lg"
             style={{ backgroundColor: primaryColor }}
           >
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
               {initial}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-semibold text-sm leading-tight truncate">
                 {botName || 'Assistant'}
               </p>
-              <p className="text-white/70 text-xs">Online</p>
+              <p className="text-white/80 text-xs flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400" />
+                Online
+              </p>
             </div>
-            <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white text-xs cursor-pointer">
+              ×
+            </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 p-3 space-y-3 min-h-[180px] max-h-[180px] overflow-y-auto bg-slate-50">
-            <div className="flex gap-2 items-end">
+          {/* Messages — transparent, just floating bubbles */}
+          <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto px-1">
+            <div className="flex items-end gap-1.5">
               <div
-                className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
                 style={{ backgroundColor: primaryColor }}
               >
                 {initial}
               </div>
-              <div className="bg-white text-slate-700 text-xs px-3 py-2 rounded-2xl rounded-bl-sm shadow-sm max-w-[85%] leading-relaxed">
+              <div className="bg-white text-slate-700 text-xs px-3 py-2 rounded-[18px] rounded-bl-[4px] shadow-md max-w-[80%] leading-relaxed">
                 {greeting || 'Hello! How can I help you today?'}
               </div>
             </div>
           </div>
 
-          {/* Input */}
-          <div className="p-3 border-t border-slate-100 bg-white">
-            <div className="flex items-center gap-2 bg-slate-50 rounded-full px-3 py-2 border border-slate-200">
-              <input
-                className="flex-1 text-xs bg-transparent outline-none text-slate-500 placeholder-slate-400"
-                placeholder="Type a message..."
-                disabled
-              />
-              <button
-                className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80"
-                style={{ backgroundColor: primaryColor }}
-              >
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                </svg>
-              </button>
-            </div>
+          {/* Input floating pill */}
+          <div className="flex items-center gap-2 bg-white rounded-full px-3.5 py-2 shadow-lg border border-white/60">
+            <input
+              className="flex-1 text-xs bg-transparent outline-none text-slate-500 placeholder-slate-400"
+              placeholder="Type a message…"
+              disabled
+            />
+            <button
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: primaryColor }}
+            >
+              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
