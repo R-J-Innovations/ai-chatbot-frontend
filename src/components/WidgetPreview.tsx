@@ -11,13 +11,14 @@ export default function WidgetPreview({ botName, greeting, primaryColor, backgro
   const [isOpen, setIsOpen] = useState(true)
   const initial = (botName || 'A')[0].toUpperCase()
 
-  const isGradient = backgroundColor.startsWith('linear-gradient')
-  const isDark = backgroundColor === '#1e293b'
+  const bg = backgroundColor || '#f1f5f9'
+  const isGradient = bg.startsWith('linear-gradient')
+  const isDark = bg === '#1e293b'
 
   return (
     <div
       className="relative h-[500px] rounded-xl border border-slate-200 overflow-hidden select-none transition-all duration-300"
-      style={isGradient ? { backgroundImage: backgroundColor } : { backgroundColor: backgroundColor || '#f1f5f9' }}
+      style={isGradient ? { backgroundImage: bg } : { backgroundColor: bg }}
     >
       <p className={`absolute top-3 left-1/2 -translate-x-1/2 text-xs font-medium tracking-wide uppercase z-10 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
         Preview
@@ -25,7 +26,7 @@ export default function WidgetPreview({ botName, greeting, primaryColor, backgro
 
       {/* Chat window — transparent container, floating elements like the real widget */}
       {isOpen && (
-        <div className="absolute bottom-20 right-4 w-72 flex flex-col gap-2">
+        <div className="absolute top-10 bottom-20 right-4 w-72 flex flex-col gap-2">
           {/* Header pill */}
           <div
             className="flex items-center gap-2.5 px-3 py-3 rounded-2xl shadow-lg"
@@ -49,7 +50,7 @@ export default function WidgetPreview({ botName, greeting, primaryColor, backgro
           </div>
 
           {/* Messages — transparent, just floating bubbles */}
-          <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto px-1">
+          <div className="flex flex-col gap-2 flex-1 overflow-y-auto px-1">
             <div className="flex items-end gap-1.5">
               <div
                 className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
