@@ -8,6 +8,14 @@ interface BotSettings {
   systemPrompt: string
   primaryColor: string
   backgroundColor: string
+  websiteUrl: string
+}
+
+interface KnowledgeBaseStatus {
+  status: string
+  pageCount: number
+  scrapedAt: string
+  errorMessage: string
 }
 
 const PRESET_COLORS = [
@@ -30,21 +38,56 @@ export default function Settings() {
     systemPrompt: '',
     primaryColor: '#4F46E5',
     backgroundColor: 'transparent',
+    websiteUrl: '',
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [kb, setKb] = useState<KnowledgeBaseStatus | null>(null)
+  const [scraping, setScraping] = useState(false)
 
   useEffect(() => {
     api
-      .get<{ data: { botSettings: BotSettings } }>('/tenant/me')
+      .get<{ data: { botSettings: BotSettings; websiteUrl?: string } }>('/tenant/me')
       .then((r) => {
-        const s = r.data.data.botSettings
-        if (s) setForm(s)
+        const d = r.data.data
+        if (d.botSettings) setForm({ ...d.botSettings, websiteUrl: d.websiteUrl || '' })
       })
       .catch(console.error)
       .finally(() => setLoading(false))
+
+    api
+      .get<{ data: KnowledgeBaseStatus }>('/tenant/me/knowledge-base')
+      .then((r) => setKb(r.data.data))
+      .catch(console.error)
   }, [])
+
+  // Poll status while scraping
+  useEffect(() => {
+    if (!scraping) return
+    const interval = setInterval(() => {
+      api
+        .get<{ data: KnowledgeBaseStatus }>('/tenant/me/knowledge-base')
+        .then((r) => {
+          setKb(r.data.data)
+          if (r.data.data.status !== 'scraping') setScraping(false)
+        })
+        .catch(() => setScraping(false))
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [scraping])
+
+  const triggerScrape = async () => {
+    setScraping(true)
+    setKb((k) => k ? { ...k, status: 'scraping' } : { status: 'scraping', pageCount: 0, scrapedAt: '', errorMessage: '' })
+    try {
+      await api.post('/tenant/me/scrape')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Scrape failed'
+      setKb((k) => k ? { ...k, status: 'error', errorMessage: msg } : null)
+      setScraping(false)
+    }
+  }
 
   const set = (field: keyof BotSettings) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -58,6 +101,10 @@ export default function Settings() {
       await api.put('/tenant/me/bot-settings', form)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
+      // Auto-scrape whenever settings are saved with a website URL
+      if (form.websiteUrl?.trim()) {
+        triggerScrape()
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -175,6 +222,61 @@ export default function Settings() {
               <p className="text-xs text-slate-400 mt-1.5">
                 Instructions that guide how the AI responds
               </p>
+            </div>
+          </div>
+
+          {/* Website scraper */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+            <div>
+              <h2 className="font-semibold text-slate-900 text-sm">Website Knowledge Base</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Scrape your website so the AI can answer questions about your content
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Website URL</label>
+              <input
+                type="url"
+                value={form.websiteUrl}
+                onChange={set('websiteUrl')}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="https://yourwebsite.com"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="text-xs">
+                {kb?.status === 'ready' && (
+                  <span className="text-green-600 font-medium">
+                    ✓ {kb.pageCount} pages indexed
+                    {kb.scrapedAt && <span className="text-slate-400 font-normal"> · {new Date(kb.scrapedAt).toLocaleDateString()}</span>}
+                  </span>
+                )}
+                {kb?.status === 'scraping' && (
+                  <span className="text-indigo-500 font-medium animate-pulse">Indexing website…</span>
+                )}
+                {kb?.status === 'error' && (
+                  <span className="text-red-500">{kb.errorMessage || 'Scrape failed'}</span>
+                )}
+                {(!kb || kb.status === 'pending') && (
+                  <span className="text-slate-400">Will index automatically when you save</span>
+                )}
+              </div>
+
+              {kb?.status === 'ready' && (
+                <button
+                  type="button"
+                  onClick={triggerScrape}
+                  disabled={scraping}
+                  title="Re-index"
+                  className="text-slate-400 hover:text-slate-700 disabled:opacity-40 transition-colors"
+                >
+                  <svg className={`w-4 h-4 ${scraping ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
