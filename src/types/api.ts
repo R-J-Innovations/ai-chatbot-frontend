@@ -49,3 +49,44 @@ export interface TenantData {
   name: string
   apiKey: string
 }
+
+export interface Lead {
+  id: string
+  tenantId: string
+  visitorId?: string
+  name: string
+  email: string
+  phone?: string
+  pageUrl?: string
+  notified: boolean
+  capturedAt: string
+}
+
+export interface AnalyticsSummary {
+  totalConversations: number
+  totalLeads: number
+  conversationsToday: number
+  leadsToday: number
+  conversationsThisWeek: number
+  leadsThisWeek: number
+  conversationsThisMonth: number
+  leadsThisMonth: number
+  avgMessagesPerConversation: number
+  topPages: Array<{ url: string; conversations: number }>
+}
+
+export interface SubscriptionInfo {
+  plan: 'free' | 'starter' | 'pro'
+  status: 'active' | 'trial' | 'cancelled' | 'past_due'
+  nextBillingDate?: string
+  hideBranding: boolean
+}
+
+export interface PlanInfo {
+  id: 'free' | 'starter' | 'pro'
+  name: string
+  priceZAR: number
+  priceUSD: number
+  features: string[]
+  missingFeatures: string[]
+}
