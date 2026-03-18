@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../api/client'
 import WidgetPreview from '../components/WidgetPreview'
-import type { BotSettings, KnowledgeBaseStatus } from '../types/api'
+import type { BotSettings, KnowledgeBaseStatus, ScraperConfig } from '../types/api'
 
 const PRESET_COLORS = [
   '#4F46E5', '#7C3AED', '#DB2777', '#DC2626',
@@ -30,13 +30,17 @@ export default function Settings() {
   const [saved, setSaved] = useState(false)
   const [kb, setKb] = useState<KnowledgeBaseStatus | null>(null)
   const [scraping, setScraping] = useState(false)
+  const [rawCookies, setRawCookies] = useState('')
+  const [savingCookies, setSavingCookies] = useState(false)
+  const [savedCookies, setSavedCookies] = useState(false)
 
   useEffect(() => {
     api
-      .get<{ data: { botSettings: BotSettings; websiteUrl?: string } }>('/tenant/me')
+      .get<{ data: { botSettings: BotSettings; websiteUrl?: string; scraperConfig?: ScraperConfig } }>('/tenant/me')
       .then((r) => {
         const d = r.data.data
         if (d.botSettings) setForm({ ...d.botSettings, websiteUrl: d.websiteUrl || '' })
+        if (d.scraperConfig?.rawCookies) setRawCookies(d.scraperConfig.rawCookies)
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -47,7 +51,6 @@ export default function Settings() {
       .catch(console.error)
   }, [])
 
-  // Poll status while scraping
   useEffect(() => {
     if (!scraping) return
     const interval = setInterval(() => {
@@ -74,6 +77,20 @@ export default function Settings() {
     }
   }
 
+  const saveCookies = async () => {
+    setSavingCookies(true)
+    setSavedCookies(false)
+    try {
+      await api.put('/tenant/me/scraper-config', { rawCookies })
+      setSavedCookies(true)
+      setTimeout(() => setSavedCookies(false), 3000)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSavingCookies(false)
+    }
+  }
+
   const set = (field: keyof BotSettings) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -86,7 +103,6 @@ export default function Settings() {
       await api.put('/tenant/me/bot-settings', form)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
-      // Auto-scrape whenever settings are saved with a website URL
       if (form.websiteUrl?.trim()) {
         triggerScrape()
       }
@@ -98,9 +114,7 @@ export default function Settings() {
   }
 
   if (loading) {
-    return (
-      <div className="p-8 text-slate-400 text-sm">Loading…</div>
-    )
+    return <div className="p-8 text-slate-400 text-sm">Loading…</div>
   }
 
   return (
@@ -111,7 +125,6 @@ export default function Settings() {
       </div>
 
       <div className="flex gap-8 items-start">
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 max-w-lg space-y-6">
           <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
             <h2 className="font-semibold text-slate-900 text-sm">Appearance</h2>
@@ -128,9 +141,7 @@ export default function Settings() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Primary color
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Primary color</label>
               <div className="flex items-center gap-3">
                 <div className="flex gap-2 flex-wrap">
                   {PRESET_COLORS.map((c) => (
@@ -154,10 +165,9 @@ export default function Settings() {
                 />
               </div>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Chat background
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Chat background</label>
               <div className="flex items-center gap-2 flex-wrap">
                 {BG_OPTIONS.map((opt) => (
                   <button
@@ -178,9 +188,7 @@ export default function Settings() {
             <h2 className="font-semibold text-slate-900 text-sm">Behavior</h2>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Greeting message
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Greeting message</label>
               <input
                 type="text"
                 value={form.greeting}
@@ -188,15 +196,11 @@ export default function Settings() {
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Hello! How can I help you today?"
               />
-              <p className="text-xs text-slate-400 mt-1.5">
-                First message shown when the widget opens
-              </p>
+              <p className="text-xs text-slate-400 mt-1.5">First message shown when the widget opens</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                System prompt
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">System prompt</label>
               <textarea
                 value={form.systemPrompt}
                 onChange={set('systemPrompt')}
@@ -204,9 +208,7 @@ export default function Settings() {
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                 placeholder="You are a helpful assistant for Acme Corp. Answer questions about our products and services."
               />
-              <p className="text-xs text-slate-400 mt-1.5">
-                Instructions that guide how the AI responds
-              </p>
+              <p className="text-xs text-slate-400 mt-1.5">Instructions that guide how the AI responds</p>
             </div>
           </div>
 
@@ -235,14 +237,23 @@ export default function Settings() {
                 {kb?.status === 'ready' && (
                   <span className="text-green-600 font-medium">
                     ✓ {kb.pageCount} pages indexed
-                    {kb.scrapedAt && <span className="text-slate-400 font-normal"> · {new Date(kb.scrapedAt).toLocaleDateString()}</span>}
+                    {kb.scrapedAt && (
+                      <span className="text-slate-400 font-normal">
+                        {' '}· {new Date(kb.scrapedAt).toLocaleDateString()}
+                      </span>
+                    )}
                   </span>
                 )}
                 {kb?.status === 'scraping' && (
                   <span className="text-indigo-500 font-medium animate-pulse">Indexing website…</span>
                 )}
                 {kb?.status === 'error' && (
-                  <span className="text-red-500">{kb.errorMessage || 'Scrape failed'}</span>
+                  <div className="flex items-start gap-1.5 text-red-600 max-w-xs">
+                    <svg className="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                    <span className="leading-snug">{kb.errorMessage || 'Scrape failed'}</span>
+                  </div>
                 )}
                 {(!kb || kb.status === 'pending') && (
                   <span className="text-slate-400">Will index automatically when you save</span>
@@ -265,27 +276,61 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* Authentication cookies */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+            <div>
+              <h2 className="font-semibold text-slate-900 text-sm">Authentication Cookies</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                For password-protected websites. Open your site in a browser, log in, then go to DevTools → Application → Cookies and paste your session cookies here.
+              </p>
+            </div>
+
+            <div>
+              <textarea
+                value={rawCookies}
+                onChange={(e) => setRawCookies(e.target.value)}
+                rows={3}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                placeholder="session_id=abc123; auth_token=xyz789"
+              />
+              <p className="text-xs text-slate-400 mt-1.5">
+                Format: <span className="font-mono">name=value; name2=value2</span>
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={saveCookies}
+              disabled={savingCookies}
+              className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+            >
+              {savingCookies ? 'Saving…' : savedCookies ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Saved
+                </>
+              ) : 'Save Cookies'}
+            </button>
+          </div>
+
           <button
             type="submit"
             disabled={saving}
             className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
           >
-            {saving ? (
-              'Saving…'
-            ) : saved ? (
+            {saving ? 'Saving…' : saved ? (
               <>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Saved
               </>
-            ) : (
-              'Save changes'
-            )}
+            ) : 'Save changes'}
           </button>
         </form>
 
-        {/* Live preview */}
         <div className="w-80 flex-shrink-0 sticky top-8">
           <p className="text-sm font-medium text-slate-700 mb-3">Live preview</p>
           <WidgetPreview

@@ -31,6 +31,10 @@ export interface BotSettings {
   websiteUrl: string
 }
 
+export interface ScraperConfig {
+  rawCookies?: string
+}
+
 export interface KnowledgeBaseStatus {
   status: string
   pageCount: number
