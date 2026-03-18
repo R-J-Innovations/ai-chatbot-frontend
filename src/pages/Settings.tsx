@@ -31,6 +31,7 @@ export default function Settings() {
   const [kb, setKb] = useState<KnowledgeBaseStatus | null>(null)
   const [scraping, setScraping] = useState(false)
   const [rawCookies, setRawCookies] = useState('')
+  const [additionalUrls, setAdditionalUrls] = useState('')
   const [savingCookies, setSavingCookies] = useState(false)
   const [savedCookies, setSavedCookies] = useState(false)
 
@@ -41,6 +42,7 @@ export default function Settings() {
         const d = r.data.data
         if (d.botSettings) setForm({ ...d.botSettings, websiteUrl: d.websiteUrl || '' })
         if (d.scraperConfig?.rawCookies) setRawCookies(d.scraperConfig.rawCookies)
+        if (d.scraperConfig?.additionalUrls) setAdditionalUrls(d.scraperConfig.additionalUrls.join('\n'))
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -81,7 +83,8 @@ export default function Settings() {
     setSavingCookies(true)
     setSavedCookies(false)
     try {
-      await api.put('/tenant/me/scraper-config', { rawCookies })
+      const urls = additionalUrls.split('\n').map(u => u.trim()).filter(Boolean)
+      await api.put('/tenant/me/scraper-config', { rawCookies, additionalUrls: urls })
       setSavedCookies(true)
       setTimeout(() => setSavedCookies(false), 3000)
     } catch (err) {
@@ -276,14 +279,34 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Authentication cookies */}
+          {/* Authentication cookies + additional URLs */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
             <div>
-              <h2 className="font-semibold text-slate-900 text-sm">Authentication Cookies</h2>
+              <h2 className="font-semibold text-slate-900 text-sm">Advanced Scraper Settings</h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                For password-protected websites. Open your site in a browser, log in, then go to DevTools → Application → Cookies and paste your session cookies here.
+                For SPA / React sites where auto-crawling misses pages, or for password-protected websites.
               </p>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Additional URLs to index</label>
+              <textarea
+                value={additionalUrls}
+                onChange={(e) => setAdditionalUrls(e.target.value)}
+                rows={4}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                placeholder={"https://yoursite.com/about\nhttps://yoursite.com/pricing\nhttps://yoursite.com/jobs?category=design"}
+              />
+              <p className="text-xs text-slate-400 mt-1.5">
+                One URL per line. Useful for SPA sites where the auto-crawler only finds one page, or for specific filtered views (e.g. <span className="font-mono">/jobs?category=web</span>).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Authentication Cookies</label>
+              <p className="text-xs text-slate-400 mb-1.5">
+                For password-protected pages. Log in to your site, open DevTools → Application → Cookies and paste them here.
+              </p>
 
             <div>
               <textarea
@@ -311,7 +334,7 @@ export default function Settings() {
                   </svg>
                   Saved
                 </>
-              ) : 'Save Cookies'}
+              ) : 'Save'}
             </button>
           </div>
 

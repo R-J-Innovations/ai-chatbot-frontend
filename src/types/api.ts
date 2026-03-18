@@ -33,6 +33,7 @@ export interface BotSettings {
 
 export interface ScraperConfig {
   rawCookies?: string
+  additionalUrls?: string[]
 }
 
 export interface KnowledgeBaseStatus {
