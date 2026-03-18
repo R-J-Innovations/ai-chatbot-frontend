@@ -3,9 +3,25 @@ import { Link } from 'react-router-dom'
 import api from '../api/client'
 import type { SessionSummary } from '../types/api'
 
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  color = 'indigo',
+}: {
+  label: string
+  value: string | number
+  sub?: string
+  color?: 'indigo' | 'green' | 'blue' | 'violet'
+}) {
+  const colorMap: Record<string, string> = {
+    indigo: 'bg-indigo-50 border-indigo-100',
+    green: 'bg-green-50 border-green-100',
+    blue: 'bg-blue-50 border-blue-100',
+    violet: 'bg-violet-50 border-violet-100',
+  }
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6">
+    <div className={`rounded-xl border p-6 ${colorMap[color]}`}>
       <p className="text-sm text-slate-500 font-medium">{label}</p>
       <p className="text-3xl font-bold text-slate-900 mt-1">{value}</p>
       {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
@@ -16,6 +32,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
 export default function Dashboard() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [leadCount, setLeadCount] = useState<number>(0)
 
   useEffect(() => {
     api
@@ -23,6 +40,11 @@ export default function Dashboard() {
       .then((r) => setSessions(r.data.data))
       .catch(console.error)
       .finally(() => setLoading(false))
+
+    api
+      .get<{ data: { count: number } }>('/leads/count')
+      .then((r) => setLeadCount(r.data.data.count))
+      .catch(() => setLeadCount(0))
   }, [])
 
   const totalMessages = sessions.reduce((sum, s) => sum + s.messageCount, 0)
@@ -31,18 +53,54 @@ export default function Dashboard() {
     (s) => new Date(s.lastActivityAt).toDateString() === today
   ).length
 
+  const hasActivity = sessions.length > 0
+
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1">Overview of your chatbot activity</p>
+        <p className="text-slate-500 text-sm mt-1">Overview of your Botix chatbot activity</p>
       </div>
 
+      {/* Quick Start card — shown if no sessions yet */}
+      {!loading && !hasActivity && (
+        <div className="mb-8 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white shadow-lg">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-1">Quick Start</h3>
+              <p className="text-indigo-100 text-sm mb-4">
+                You're all set! Embed the Botix widget on your website to start capturing leads and conversations.
+              </p>
+              <div className="flex gap-3">
+                <Link
+                  to="/api-keys"
+                  className="bg-white text-indigo-700 font-semibold text-sm px-4 py-2 rounded-lg hover:bg-indigo-50 transition-colors"
+                >
+                  Get embed code
+                </Link>
+                <Link
+                  to="/settings"
+                  className="bg-white/20 text-white font-semibold text-sm px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  Customize bot
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Total Sessions" value={sessions.length} sub="All time" />
-        <StatCard label="Total Messages" value={totalMessages} sub="Across all sessions" />
-        <StatCard label="Active Today" value={activeTodaySessions} sub="Sessions with activity" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard label="Total Sessions" value={sessions.length} sub="All time" color="indigo" />
+        <StatCard label="Total Messages" value={totalMessages} sub="Across all sessions" color="blue" />
+        <StatCard label="Active Today" value={activeTodaySessions} sub="Sessions with activity" color="violet" />
+        <StatCard label="Total Leads" value={leadCount} sub="Captured via widget" color="green" />
       </div>
 
       {/* Recent sessions */}
@@ -55,7 +113,7 @@ export default function Dashboard() {
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-slate-400 text-sm">Loading…</div>
+          <div className="p-8 text-center text-slate-400 text-sm">Loading...</div>
         ) : sessions.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-sm">
             No sessions yet. Embed the widget on your site to get started.
