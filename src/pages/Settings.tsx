@@ -307,8 +307,6 @@ export default function Settings() {
               <p className="text-xs text-slate-400 mb-1.5">
                 For password-protected pages. Log in to your site, open DevTools → Application → Cookies and paste them here.
               </p>
-
-            <div>
               <textarea
                 value={rawCookies}
                 onChange={(e) => setRawCookies(e.target.value)}
