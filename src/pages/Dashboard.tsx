@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/client'
-
-interface SessionSummary {
-  id: string
-  visitorId: string
-  messageCount: number
-  startedAt: string
-  lastActivityAt: string
-  pageUrl?: string
-}
+import type { SessionSummary } from '../types/api'
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (

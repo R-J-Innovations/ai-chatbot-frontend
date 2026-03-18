@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
-
-interface TenantData {
-  id: string
-  name: string
-  apiKey: string
-}
+import type { TenantData } from '../types/api'
 
 function CodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false)

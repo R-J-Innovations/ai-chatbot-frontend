@@ -1,22 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react'
 import api from '../api/client'
 import WidgetPreview from '../components/WidgetPreview'
-
-interface BotSettings {
-  botName: string
-  greeting: string
-  systemPrompt: string
-  primaryColor: string
-  backgroundColor: string
-  websiteUrl: string
-}
-
-interface KnowledgeBaseStatus {
-  status: string
-  pageCount: number
-  scrapedAt: string
-  errorMessage: string
-}
+import type { BotSettings, KnowledgeBaseStatus } from '../types/api'
 
 const PRESET_COLORS = [
   '#4F46E5', '#7C3AED', '#DB2777', '#DC2626',

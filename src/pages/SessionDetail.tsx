@@ -1,21 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../api/client'
-
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: string
-}
-
-interface ChatSession {
-  id: string
-  visitorId: string
-  messages: ChatMessage[]
-  startedAt: string
-  lastActivityAt: string
-  pageUrl?: string
-}
+import type { ChatSession } from '../types/api'
 
 export default function SessionDetail() {
   const { sessionId } = useParams<{ sessionId: string }>()
