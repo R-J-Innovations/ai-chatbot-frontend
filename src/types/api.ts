@@ -41,6 +41,7 @@ export interface KnowledgeBaseStatus {
   pageCount: number
   scrapedAt: string
   errorMessage: string
+  statusMessage: string
 }
 
 export interface TenantData {
