@@ -69,7 +69,10 @@ export default function Settings() {
 
   const triggerScrape = async () => {
     setScraping(true)
-    setKb((k) => k ? { ...k, status: 'scraping' } : { status: 'scraping', pageCount: 0, scrapedAt: '', errorMessage: '' })
+    setKb((k) => k
+      ? { ...k, status: 'scraping', statusMessage: '', errorMessage: '' }
+      : { status: 'scraping', pageCount: 0, scrapedAt: '', errorMessage: '', statusMessage: '' }
+    )
     try {
       await api.post('/tenant/me/scrape')
     } catch (err: unknown) {
@@ -77,6 +80,16 @@ export default function Settings() {
       setKb((k) => k ? { ...k, status: 'error', errorMessage: msg } : null)
       setScraping(false)
     }
+  }
+
+  const cancelScrape = async () => {
+    try {
+      await api.post('/tenant/me/scrape/cancel')
+    } catch (err) {
+      console.error(err)
+    }
+    setScraping(false)
+    setKb((k) => k ? { ...k, status: 'error', errorMessage: 'Scrape was cancelled.', statusMessage: '' } : null)
   }
 
   const saveCookies = async () => {
@@ -236,7 +249,7 @@ export default function Settings() {
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="text-xs">
+              <div className="text-xs flex-1 min-w-0">
                 {kb?.status === 'ready' && (
                   <span className="text-green-600 font-medium">
                     ✓ {kb.pageCount} pages indexed
@@ -253,7 +266,7 @@ export default function Settings() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>
-                    <span className="font-medium text-xs truncate max-w-xs">
+                    <span className="font-medium text-xs truncate max-w-[220px]">
                       {kb.statusMessage || 'Starting…'}
                     </span>
                   </div>
@@ -271,19 +284,31 @@ export default function Settings() {
                 )}
               </div>
 
-              {kb?.status === 'ready' && (
-                <button
-                  type="button"
-                  onClick={triggerScrape}
-                  disabled={scraping}
-                  title="Re-index"
-                  className="text-slate-400 hover:text-slate-700 disabled:opacity-40 transition-colors"
-                >
-                  <svg className={`w-4 h-4 ${scraping ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              )}
+              <div className="flex items-center gap-2 ml-2 shrink-0">
+                {kb?.status === 'scraping' && (
+                  <button
+                    type="button"
+                    onClick={cancelScrape}
+                    title="Cancel scrape"
+                    className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+                {(kb?.status === 'ready' || kb?.status === 'error') && (
+                  <button
+                    type="button"
+                    onClick={triggerScrape}
+                    disabled={scraping}
+                    title="Re-index"
+                    className="text-slate-400 hover:text-slate-700 disabled:opacity-40 transition-colors"
+                  >
+                    <svg className={`w-4 h-4 ${scraping ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
