@@ -6,7 +6,6 @@ interface Plan {
   id: 'free' | 'starter' | 'pro'
   name: string
   priceZAR: number
-  priceUSD: number
   features: string[]
   missingFeatures: string[]
   highlight?: boolean
@@ -17,7 +16,6 @@ const plans: Plan[] = [
     id: 'free',
     name: 'FREE',
     priceZAR: 0,
-    priceUSD: 0,
     features: ['1 chatbot', '100 msgs/mo', 'Lead capture', 'Basic analytics'],
     missingFeatures: ['Remove "Powered by Botix"', 'Email notifications', 'WhatsApp alerts'],
   },
@@ -25,7 +23,6 @@ const plans: Plan[] = [
     id: 'starter',
     name: 'STARTER',
     priceZAR: 299,
-    priceUSD: 15,
     features: ['1 chatbot', '2,000 msgs/mo', 'Lead capture', 'Full analytics', 'Remove branding', 'Email notifications'],
     missingFeatures: ['WhatsApp alerts'],
     highlight: true,
@@ -34,7 +31,6 @@ const plans: Plan[] = [
     id: 'pro',
     name: 'PRO',
     priceZAR: 799,
-    priceUSD: 39,
     features: ['3 chatbots', 'Unlimited msgs', 'Lead capture', 'Full analytics', 'Remove branding', 'Email notifications', 'WhatsApp alerts', 'Priority support'],
     missingFeatures: [],
   },
@@ -75,19 +71,6 @@ export default function Billing() {
       window.location.href = res.data.data.paymentUrl
     } catch {
       setError('Failed to initiate PayFast payment. Please try again.')
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const handleStripe = async (plan: 'starter' | 'pro') => {
-    setActionLoading(`stripe-${plan}`)
-    setError('')
-    try {
-      const res = await api.post<{ data: { checkoutUrl: string } }>('/billing/stripe/create-checkout', { plan })
-      window.location.href = res.data.data.checkoutUrl
-    } catch {
-      setError('Failed to initiate Stripe checkout. Please try again.')
     } finally {
       setActionLoading(null)
     }
@@ -172,7 +155,6 @@ export default function Billing() {
                     </span>
                     <span className="text-slate-500 text-sm">/mo</span>
                   </div>
-                  <p className="text-slate-400 text-xs mt-0.5">${plan.priceUSD}/mo USD</p>
                 </div>
               </div>
 
@@ -202,22 +184,13 @@ export default function Billing() {
                   Current Plan
                 </div>
               ) : isPaid ? (
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handlePayfast(plan.id as 'starter' | 'pro')}
-                    disabled={actionLoading !== null}
-                    className="w-full py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 rounded-xl transition-colors"
-                  >
-                    {actionLoading === `payfast-${plan.id}` ? 'Redirecting...' : `Upgrade - PayFast (ZAR)`}
-                  </button>
-                  <button
-                    onClick={() => handleStripe(plan.id as 'starter' | 'pro')}
-                    disabled={actionLoading !== null}
-                    className="w-full py-2.5 text-sm font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-60 rounded-xl transition-colors border border-indigo-200"
-                  >
-                    {actionLoading === `stripe-${plan.id}` ? 'Redirecting...' : `Upgrade - Stripe (USD)`}
-                  </button>
-                </div>
+                <button
+                  onClick={() => handlePayfast(plan.id as 'starter' | 'pro')}
+                  disabled={actionLoading !== null}
+                  className="w-full py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 rounded-xl transition-colors"
+                >
+                  {actionLoading === `payfast-${plan.id}` ? 'Redirecting...' : 'Upgrade with PayFast'}
+                </button>
               ) : null}
             </div>
           )
