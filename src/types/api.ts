@@ -90,3 +90,37 @@ export interface PlanInfo {
   features: string[]
   missingFeatures: string[]
 }
+
+export type WhatsAppProvider = 'meta_cloud_api' | 'baileys' | 'disabled'
+export type WhatsAppStatus = 'connected' | 'disconnected' | 'qr_pending'
+
+export interface WhatsAppConfigData {
+  provider: WhatsAppProvider
+  phoneNumberId?: string
+  accessToken?: string
+  wabaId?: string
+  recipients: string[]
+  messageTemplate: string
+}
+
+export interface WhatsAppConfigResponse {
+  provider: WhatsAppProvider
+  phoneNumberId?: string
+  accessToken?: string
+  wabaId?: string
+  recipients: string[]
+  messageTemplate: string
+}
+
+export interface WhatsAppStatusResponse {
+  status: WhatsAppStatus
+}
+
+export interface QrCodeResponse {
+  dataUrl: string
+}
+
+export interface SendResult {
+  success: boolean
+  error?: string
+}
