@@ -34,6 +34,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [kb, setKb] = useState<KnowledgeBaseStatus | null>(null)
   const [scraping, setScraping] = useState(false)
   const [summary, setSummary] = useState('')
@@ -45,8 +46,10 @@ export default function Settings() {
       .get<{ data: { id: string; botSettings: BotSettings; websiteUrl?: string } }>('/tenant/me')
       .then((r) => {
         const d = r.data.data
-        if (d.id) setTenantId(d.id)
-        if (d.botSettings) setForm({ ...d.botSettings, websiteUrl: d.websiteUrl || '' })
+        if (d != null) {
+          if (d.id) setTenantId(d.id)
+          if (d.botSettings) setForm({ ...d.botSettings, websiteUrl: d.websiteUrl || '' })
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -54,8 +57,11 @@ export default function Settings() {
     api
       .get<{ data: KnowledgeBaseStatus }>('/tenant/me/knowledge-base')
       .then((r) => {
-        setKb(r.data.data)
-        setSummary(r.data.data.summary || '')
+        const kbData = r.data.data
+        if (kbData != null) {
+          setKb(kbData)
+          setSummary(kbData.summary || '')
+        }
       })
       .catch(console.error)
   }, [])
@@ -69,11 +75,14 @@ export default function Settings() {
           signal: controller.signal,
         })
         .then((r) => {
-          setKb(r.data.data)
-          if (r.data.data.status !== 'scraping') {
-            setScraping(false)
-            // Refresh summary after scrape completes
-            setSummary(r.data.data.summary || '')
+          const kbData = r.data.data
+          if (kbData != null) {
+            setKb(kbData)
+            if (kbData.status !== 'scraping') {
+              setScraping(false)
+              // Refresh summary after scrape completes
+              setSummary(kbData.summary || '')
+            }
           }
         })
         .catch((err) => {
@@ -133,6 +142,7 @@ export default function Settings() {
     e.preventDefault()
     setSaving(true)
     setSaved(false)
+    setSaveError(null)
     try {
       await api.put('/tenant/me/bot-settings', form)
       setSaved(true)
@@ -140,7 +150,9 @@ export default function Settings() {
       if (form.websiteUrl?.trim()) {
         triggerScrape()
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      const msg = getApiError(err, 'Failed to save settings')
+      setSaveError(msg)
       console.error(err)
     } finally {
       setSaving(false)
@@ -405,6 +417,12 @@ export default function Settings() {
                 <p className="text-xs text-slate-400">
                   This is what your AI knows about your business. It's updated automatically when you re-scan your website.
                 </p>
+              </div>
+            )}
+
+            {saveError && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                {saveError}
               </div>
             )}
 
