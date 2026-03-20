@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { getApiError } from '../utils/apiError'
 
 export default function Login() {
   const { login } = useAuth()
@@ -18,10 +19,7 @@ export default function Login() {
       await login(email, password)
       navigate('/dashboard')
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Login failed'
-      setError(msg)
+      setError(getApiError(err, 'Login failed'))
     } finally {
       setLoading(false)
     }

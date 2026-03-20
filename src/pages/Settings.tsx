@@ -3,6 +3,7 @@ import api from '../api/client'
 import WidgetPreview from '../components/WidgetPreview'
 import WhatsAppSettings from '../components/whatsapp/WhatsAppSettings'
 import type { BotSettings, KnowledgeBaseStatus, ScraperConfig } from '../types/api'
+import { getApiError } from '../utils/apiError'
 
 const PRESET_COLORS = [
   '#4F46E5', '#7C3AED', '#DB2777', '#DC2626',
@@ -61,16 +62,25 @@ export default function Settings() {
 
   useEffect(() => {
     if (!scraping) return
+    const controller = new AbortController()
     const interval = setInterval(() => {
       api
-        .get<{ data: KnowledgeBaseStatus }>('/tenant/me/knowledge-base')
+        .get<{ data: KnowledgeBaseStatus }>('/tenant/me/knowledge-base', {
+          signal: controller.signal,
+        })
         .then((r) => {
           setKb(r.data.data)
           if (r.data.data.status !== 'scraping') setScraping(false)
         })
-        .catch(() => setScraping(false))
+        .catch((err) => {
+          if ((err as { name?: string }).name === 'CanceledError') return
+          setScraping(false)
+        })
     }, 2000)
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      controller.abort()
+    }
   }, [scraping])
 
   const triggerScrape = async () => {
@@ -82,7 +92,7 @@ export default function Settings() {
     try {
       await api.post('/tenant/me/scrape')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Scrape failed'
+      const msg = getApiError(err, 'Scrape failed')
       setKb((k) => k ? { ...k, status: 'error', errorMessage: msg } : null)
       setScraping(false)
     }

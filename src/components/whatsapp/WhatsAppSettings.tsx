@@ -5,6 +5,7 @@ import {
   sendWhatsAppTest,
 } from '../../api/client'
 import type { WhatsAppProvider, WhatsAppStatus } from '../../types/api'
+import { getApiError } from '../../utils/apiError'
 import MetaCloudAPIFields from './MetaCloudAPIFields'
 import BaileysQRSection from './BaileysQRSection'
 import RecipientManager from './RecipientManager'
@@ -68,10 +69,7 @@ export default function WhatsAppSettings({ botId, botName }: WhatsAppSettingsPro
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Failed to save WhatsApp settings'
-      setError(msg)
+      setError(getApiError(err, 'Failed to save WhatsApp settings'))
     } finally {
       setSaving(false)
     }
@@ -87,10 +85,7 @@ export default function WhatsAppSettings({ botId, botName }: WhatsAppSettingsPro
         message: result.success ? 'Test message sent successfully!' : result.error ?? 'Failed to send test message',
       })
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Failed to send test message'
-      setTestResult({ success: false, message: msg })
+      setTestResult({ success: false, message: getApiError(err, 'Failed to send test message') })
     } finally {
       setTesting(false)
       setTimeout(() => setTestResult(null), 5000)
