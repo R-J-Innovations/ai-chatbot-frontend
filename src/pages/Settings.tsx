@@ -2,7 +2,7 @@ import { useEffect, useState, FormEvent } from 'react'
 import api from '../api/client'
 import WidgetPreview from '../components/WidgetPreview'
 import WhatsAppSettings from '../components/whatsapp/WhatsAppSettings'
-import type { BotSettings, KnowledgeBaseStatus, ScraperConfig } from '../types/api'
+import type { BotSettings, KnowledgeBaseStatus } from '../types/api'
 import { getApiError } from '../utils/apiError'
 
 const PRESET_COLORS = [
@@ -36,27 +36,27 @@ export default function Settings() {
   const [saved, setSaved] = useState(false)
   const [kb, setKb] = useState<KnowledgeBaseStatus | null>(null)
   const [scraping, setScraping] = useState(false)
-  const [rawCookies, setRawCookies] = useState('')
-  const [additionalUrls, setAdditionalUrls] = useState('')
-  const [savingCookies, setSavingCookies] = useState(false)
-  const [savedCookies, setSavedCookies] = useState(false)
+  const [summary, setSummary] = useState('')
+  const [savingSummary, setSavingSummary] = useState(false)
+  const [savedSummary, setSavedSummary] = useState(false)
 
   useEffect(() => {
     api
-      .get<{ data: { id: string; botSettings: BotSettings; websiteUrl?: string; scraperConfig?: ScraperConfig } }>('/tenant/me')
+      .get<{ data: { id: string; botSettings: BotSettings; websiteUrl?: string } }>('/tenant/me')
       .then((r) => {
         const d = r.data.data
         if (d.id) setTenantId(d.id)
         if (d.botSettings) setForm({ ...d.botSettings, websiteUrl: d.websiteUrl || '' })
-        if (d.scraperConfig?.rawCookies) setRawCookies(d.scraperConfig.rawCookies)
-        if (d.scraperConfig?.additionalUrls) setAdditionalUrls(d.scraperConfig.additionalUrls.join('\n'))
       })
       .catch(console.error)
       .finally(() => setLoading(false))
 
     api
       .get<{ data: KnowledgeBaseStatus }>('/tenant/me/knowledge-base')
-      .then((r) => setKb(r.data.data))
+      .then((r) => {
+        setKb(r.data.data)
+        setSummary(r.data.data.summary || '')
+      })
       .catch(console.error)
   }, [])
 
@@ -70,7 +70,11 @@ export default function Settings() {
         })
         .then((r) => {
           setKb(r.data.data)
-          if (r.data.data.status !== 'scraping') setScraping(false)
+          if (r.data.data.status !== 'scraping') {
+            setScraping(false)
+            // Refresh summary after scrape completes
+            setSummary(r.data.data.summary || '')
+          }
         })
         .catch((err) => {
           if ((err as { name?: string }).name === 'CanceledError') return
@@ -108,18 +112,16 @@ export default function Settings() {
     setKb((k) => k ? { ...k, status: 'error', errorMessage: 'Scrape was cancelled.', statusMessage: '' } : null)
   }
 
-  const saveCookies = async () => {
-    setSavingCookies(true)
-    setSavedCookies(false)
+  const saveSummary = async () => {
+    setSavingSummary(true)
     try {
-      const urls = additionalUrls.split('\n').map(u => u.trim()).filter(Boolean)
-      await api.put('/tenant/me/scraper-config', { rawCookies, additionalUrls: urls })
-      setSavedCookies(true)
-      setTimeout(() => setSavedCookies(false), 3000)
+      await api.put('/tenant/me/knowledge-base/summary', { summary })
+      setSavedSummary(true)
+      setTimeout(() => setSavedSummary(false), 3000)
     } catch (err) {
-      console.error(err)
+      console.error('Failed to save summary', err)
     } finally {
-      setSavingCookies(false)
+      setSavingSummary(false)
     }
   }
 
@@ -292,12 +294,17 @@ export default function Settings() {
                 <div className="text-xs flex-1 min-w-0">
                   {kb?.status === 'ready' && (
                     <span className="text-green-600 font-medium">
-                      ✓ {kb.pageCount} pages indexed
+                      Knowledge base ready
                       {kb.scrapedAt && (
                         <span className="text-slate-400 font-normal">
                           {' '}· {new Date(kb.scrapedAt).toLocaleDateString()}
                         </span>
                       )}
+                    </span>
+                  )}
+                  {kb?.status === 'no_content' && (
+                    <span className="text-amber-600 font-medium">
+                      Could not read website — edit the knowledge base below
                     </span>
                   )}
                   {kb?.status === 'scraping' && (
@@ -335,12 +342,12 @@ export default function Settings() {
                       Cancel
                     </button>
                   )}
-                  {(kb?.status === 'ready' || kb?.status === 'error') && (
+                  {(kb?.status === 'ready' || kb?.status === 'error' || kb?.status === 'no_content') && (
                     <button
                       type="button"
                       onClick={triggerScrape}
                       disabled={scraping}
-                      title="Re-index"
+                      title="Re-scan website"
                       className="text-slate-400 hover:text-slate-700 disabled:opacity-40 transition-colors"
                     >
                       <svg className={`w-4 h-4 ${scraping ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -352,62 +359,54 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Authentication cookies + additional URLs */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-              <div>
-                <h2 className="font-semibold text-slate-900 text-sm">Advanced Scraper Settings</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  For SPA / React sites where auto-crawling misses pages, or for password-protected websites.
-                </p>
-              </div>
+            {/* Knowledge Base Content editor */}
+            {kb && (
+              <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+                <div>
+                  <h2 className="font-semibold text-slate-900 text-sm">Knowledge Base Content</h2>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Additional URLs to index</label>
+                {kb.status === 'no_content' && (
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                    We couldn't read your website automatically. Please edit the template below so your AI has something to work with.
+                  </div>
+                )}
+
+                {kb.status === 'ready' && (
+                  <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+                    AI-generated from your website. Review and edit to improve accuracy.
+                  </div>
+                )}
+
                 <textarea
-                  value={additionalUrls}
-                  onChange={(e) => setAdditionalUrls(e.target.value)}
-                  rows={4}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                  placeholder={"https://yoursite.com/about\nhttps://yoursite.com/pricing\nhttps://yoursite.com/jobs?category=design"}
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
+                  rows={15}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
+                  placeholder="Describe your business here so the AI can answer customer questions..."
                 />
-                <p className="text-xs text-slate-400 mt-1.5">
-                  One URL per line. Useful for SPA sites where the auto-crawler only finds one page, or for specific filtered views (e.g. <span className="font-mono">/jobs?category=web</span>).
+
+                <button
+                  type="button"
+                  onClick={saveSummary}
+                  disabled={savingSummary}
+                  className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  {savingSummary ? 'Saving…' : savedSummary ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Saved
+                    </>
+                  ) : 'Save Knowledge Base'}
+                </button>
+
+                <p className="text-xs text-slate-400">
+                  This is what your AI knows about your business. It's updated automatically when you re-scan your website.
                 </p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Authentication Cookies</label>
-                <p className="text-xs text-slate-400 mb-1.5">
-                  For password-protected pages. Log in to your site, open DevTools → Application → Cookies and paste them here.
-                </p>
-                <textarea
-                  value={rawCookies}
-                  onChange={(e) => setRawCookies(e.target.value)}
-                  rows={3}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                  placeholder="session_id=abc123; auth_token=xyz789"
-                />
-                <p className="text-xs text-slate-400 mt-1.5">
-                  Format: <span className="font-mono">name=value; name2=value2</span>
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={saveCookies}
-                disabled={savingCookies}
-                className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
-              >
-                {savingCookies ? 'Saving…' : savedCookies ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Saved
-                  </>
-                ) : 'Save'}
-              </button>
-            </div>
+            )}
 
             <button
               type="submit"

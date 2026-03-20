@@ -31,17 +31,13 @@ export interface BotSettings {
   websiteUrl: string
 }
 
-export interface ScraperConfig {
-  rawCookies?: string
-  additionalUrls?: string[]
-}
-
 export interface KnowledgeBaseStatus {
   status: string
   pageCount: number
   scrapedAt: string
   errorMessage: string
   statusMessage?: string
+  summary?: string
 }
 
 export interface TenantData {
