@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import OnboardingTour from './OnboardingTour'
 
 const navItems = [
   {
@@ -139,6 +140,9 @@ export default function Layout() {
           </button>
         </div>
       </aside>
+
+      {/* Onboarding tour — renders as a fixed overlay; only shows once per account */}
+      <OnboardingTour />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
