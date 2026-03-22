@@ -12,12 +12,14 @@ import SessionDetail from './pages/SessionDetail'
 import Analytics from './pages/Analytics'
 import Leads from './pages/Leads'
 import Billing from './pages/Billing'
+import About from './pages/About'
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
+          <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
